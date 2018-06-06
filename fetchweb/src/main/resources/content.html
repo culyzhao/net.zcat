@@ -23,8 +23,9 @@
 		.article-content{padding:10px 0;font-size:16px;}
 		.article-content img{display:block;margin:0 auto;max-width:100%;}
 		.article-content p{text-indent:2em;margin:8px auto 0;}
-		.article-content blockquote{background:url("../images/common/left_quote.jpg") no-repeat scroll 1% 5px #F1F1F1;color:#878787;font-size:14px;margin:0 0 20px;padding:5px 20px 5px 45px;}
+		.article-content blockquote{no-repeat scroll 1% 5px #F1F1F1;color:#878787;font-size:14px;margin:0 0 20px;padding:5px 20px 5px 45px;}
 		.article-content blockquote > p{text-indent:0}
+		.panel-body{padding:10px 15px}
 	</style>
 </head>
 
@@ -42,6 +43,16 @@
 				%article%
 			  </div>
 			</div>
+<!-- comments_loop_start -->
+			<div class="panel panel-default">
+			  <div class="panel-heading">
+				<h4>%comment.auther% %comment.time%</h4>
+			  </div>
+			  <div class="article-body article-content panel-body ">
+				%comment%
+			  </div>
+			</div>
+<!-- comments_loop_end -->
 		</div>
 		<div class="col-md-2"></div>
 	</div>

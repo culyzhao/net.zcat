@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jsoup.Connection.Response;
@@ -20,7 +21,23 @@ import org.jsoup.select.Elements;
  *
  */
 public class App {
-	public static String docroot = "";
+	private static Logger logger = Logger.getLogger("App");
+	
+	public Properties appProps = new Properties();
+	
+	public App(String propsPath) throws FileNotFoundException, IOException {
+		String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
+		String appConfigPath = rootPath + "app.properties";
+		if (propsPath != null && !propsPath.isEmpty()) {
+			appConfigPath = propsPath;
+		}
+		logger.info("Load properties from " + appConfigPath);
+
+		appProps.load(new FileInputStream(appConfigPath));
+		appProps.list(System.out);
+	}
+	
+	
 	
 	public static void init()  throws FileNotFoundException, IOException {
     	String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
@@ -131,10 +148,12 @@ public class App {
 	}
 	
 	
-    public static void main( String[] args ) throws IOException {
-    	 
-    	App.fetchList();
-    	 
+    public static void main( String[] args ) throws Exception {
+    	String props = "";
+    	if (args.length == 1) {
+    		props = args[0];
+    	}
+    	App app = new App(props);
     	 
     }
 }
