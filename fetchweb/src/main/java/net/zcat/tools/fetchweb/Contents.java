@@ -51,7 +51,7 @@ public class Contents {
 				filename  + "," +
 				auther  + "," +
 				time  + "," +
-				text ;
+				text.replaceAll("\n", "") ;
 	}
 
 }

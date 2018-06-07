@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -23,11 +24,29 @@ import org.jsoup.select.Elements;
  */
 public class App {
 	
+	public Properties appProps = new Properties();
+
 	private static Logger logger = Logger.getLogger("App");
 	
-	public Properties appProps = new Properties();
-	
-	
+   	private ArrayList<Contents> contents = new ArrayList<Contents>();
+
+   	private String document_root;
+   	private String site_name;
+   	private String site_start_url;
+   	private String article_list_template;
+   	private String article_list_select;
+   	private String article_content_template;
+   	private int article_list_history;
+   	private String article_auther;
+   	private String article_time;
+   	private String article_image;
+   	private String article_content;
+   	private String comments_auther;
+   	private String comments_time;
+   	private String comments_content;
+   	
+   	private String current_path;
+   	
 	public App(String propsPath) throws FileNotFoundException, IOException {
 		
 		String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
@@ -38,13 +57,36 @@ public class App {
 		logger.info("Load properties from " + appConfigPath);
 
 		appProps.load(new FileInputStream(appConfigPath));
-		String doc_root = appProps.getProperty(Settings.DOCUMENT_ROOT);
-		File fdoc = new File(doc_root);
-		if (!fdoc.exists()) throw new FileNotFoundException(doc_root + "not found.");
-		if (doc_root.charAt(doc_root.length() - 1) != '/') {
-			doc_root += "/";
+		
+		document_root = appProps.getProperty(Settings.DOCUMENT_ROOT);
+		site_name = appProps.getProperty(Settings.SITE_NAME);
+		site_start_url = appProps.getProperty(Settings.SITE_START_URL);
+				article_list_template = appProps.getProperty(Settings.ARTICLE_LIST_TEMPLATE);
+		article_content_template = appProps.getProperty(Settings.ARTICLE_CONTENT_TEMPLATE);
+		article_list_select = appProps.getProperty(Settings.ARTICLE_LIST_SELECT);
+		article_list_history = Integer.valueOf(appProps.getProperty(Settings.ARTICLE_LIST_HISTORY));
+		article_auther = appProps.getProperty(Settings.ARTICLE_AUTHER);
+		article_time = appProps.getProperty(Settings.ARTICLE_TIME);
+		article_image = appProps.getProperty(Settings.ARTICLE_IMAGE);
+		article_content = appProps.getProperty(Settings.ARTICLE_CONTENT);
+		comments_auther = appProps.getProperty(Settings.COMMENTS_AUTHER);
+		comments_time = appProps.getProperty(Settings.COMMENTS_TIME);
+		comments_content = appProps.getProperty(Settings.COMMENTS_CONTENT);
+
+		if (document_root.charAt(document_root.length() - 1) != '/') {
+			document_root += "/";
 		}
-		File fsite = new File(doc_root + appProps.getProperty(Settings.SITE_NAME));
+		
+		current_path = document_root + site_name + "/";
+		
+	}
+	
+	public void execute() throws FileNotFoundException {
+		
+		File fdoc = new File(document_root);
+		if (!fdoc.exists()) 
+			throw new FileNotFoundException(document_root + " not found.");
+		File fsite = new File(current_path);
 		if (!fsite.exists()) {
 			fsite.mkdir();
 		}
@@ -104,52 +146,53 @@ public class App {
 	
 	*/
 	
-	public static void DownloadImage(String url, String local) throws IOException {
+	public void DownloadImage(String url, String local) throws IOException {
     	//Open a URL Stream
     	Response resultImageResponse = Jsoup.connect(url).cookies(null)
     	                                        .ignoreContentType(true).execute();
     	// output here
     	FileOutputStream out = (new FileOutputStream(new java.io.File(local)));
-    	out.write(resultImageResponse.bodyAsBytes());  // resultImageResponse.body() is where the image's contents are.
+
+    	// resultImageResponse.body() is where the image's contents are.
+    	out.write(resultImageResponse.bodyAsBytes());  
     	out.close();
-		
 	}
 	
-	public void fetch() throws IOException {
-		Document doclist = Jsoup.connect(appProps.getProperty(Settings.SITE_START_URL)).get();
-	   	Elements list = doclist.select("div.list a[href]");
-	   	System.out.println(list.size());
-	   	ArrayList<Contents> contents = new ArrayList<Contents>();
-	   	
+	public void fetch(boolean isDownloadImg) throws IOException {
+		logger.info("fetch article list");
+		Document doclist = Jsoup.connect(this.site_start_url).get();
+	   	Elements list = doclist.select(this.article_list_select);
+	   	logger.info("list size=" + list.size());
 	   	
 	   	for (Element link : list) {
 	   		String linkHref = link.attr("abs:href");
 	   		String linkText = link.text();
-	   		String htmlFile = linkHref.substring(linkHref.lastIndexOf("/")+1);
-	   		System.out.println(linkHref + "," + linkText + "," + DigestUtils.sha1Hex(linkHref));
+	   		
 	   		Contents ct = new Contents();
 	   		ct.setId(DigestUtils.sha1Hex(linkHref));
 	   		ct.setTitle(linkText);
 	   		
-			Document detail = Jsoup.connect("http://alm.jqdev.saic-gm.com/http%20_www.wenxuecity.com_news_2018_06_05_7313078.html").get();
-		   	Element auther = detail.select("span[itemprop=author]").first();
-		   	Element time = detail.select("time[itemprop=datePublished]").first();
-	   		Elements pics = detail.select("div#articleContent img");
+			Document detail = Jsoup.connect(linkHref).get();
+			
+			Element auther = detail.selectFirst(this.article_auther);
+			ct.setAuther( auther == null ? this.site_name : auther.text());
+			
+			Element time = detail.selectFirst(this.article_time);
+			ct.setTime( time == null ? Instant.now().toString() : time.text());
+
+			Elements imgs = detail.select(appProps.getProperty(Settings.ARTICLE_IMAGE));
 	   		
-	   		for (Element pic : pics) {
-	   			String imgSrc = pic.attr("abs:src");
-	   			String imgExt = imgSrc.substring(imgSrc.lastIndexOf("."));
-	   			String localName = ct.getId() + "/" + DigestUtils.sha1Hex(imgSrc)+imgExt;
-	   			//DownloadImage(imgSrc, docroot + "/" + DigestUtils.sha1Hex(imgSrc));
-	   			pic.attr("src",localName);
-		   		//System.out.println(imgSrc+","+localName);
-		   		
+	   		for (Element img : imgs) {
+	   			String imgSrc = img.attr("abs:src");
+	   			String localSrc = ct.getId() + "/" + DigestUtils.sha1Hex(imgSrc);
+	   			String localPath = this.current_path + localSrc;
+	   			if (isDownloadImg) {
+	   				DownloadImage(imgSrc, localPath);
+	   			}
+	   			img.attr("src",localSrc);
 	   		}
-	   		Element article = detail.select("div#articleContent").first();
-	   		ct.setAuther(auther.text());
-	   		ct.setTime(time.text());
+	   		Element article = detail.selectFirst(this.article_content);
 	   		ct.setText(article.html());
-	   		System.out.println(ct);
 	   		contents.add(ct);
 	   	}
 	   	
