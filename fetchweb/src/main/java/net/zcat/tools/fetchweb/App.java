@@ -1,5 +1,6 @@
 package net.zcat.tools.fetchweb;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -21,11 +22,14 @@ import org.jsoup.select.Elements;
  *
  */
 public class App {
+	
 	private static Logger logger = Logger.getLogger("App");
 	
 	public Properties appProps = new Properties();
 	
+	
 	public App(String propsPath) throws FileNotFoundException, IOException {
+		
 		String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
 		String appConfigPath = rootPath + "app.properties";
 		if (propsPath != null && !propsPath.isEmpty()) {
@@ -34,9 +38,17 @@ public class App {
 		logger.info("Load properties from " + appConfigPath);
 
 		appProps.load(new FileInputStream(appConfigPath));
-		appProps.list(System.out);
+		String doc_root = appProps.getProperty(Settings.DOCUMENT_ROOT);
+		File fdoc = new File(doc_root);
+		if (!fdoc.exists()) throw new FileNotFoundException(doc_root + "not found.");
+		if (doc_root.charAt(doc_root.length() - 1) != '/') {
+			doc_root += "/";
+		}
+		File fsite = new File(doc_root + appProps.getProperty(Settings.SITE_NAME));
+		if (!fsite.exists()) {
+			fsite.mkdir();
+		}
 	}
-	
 	
 	
 	public static void init()  throws FileNotFoundException, IOException {
@@ -103,8 +115,8 @@ public class App {
 		
 	}
 	
-	public static void fetchList() throws IOException {
-		Document doclist = Jsoup.connect("http://alm.jqdev.saic-gm.com/http%20_www.wenxuecity.com_news_morenews_.html").get();
+	public void fetch() throws IOException {
+		Document doclist = Jsoup.connect(appProps.getProperty(Settings.SITE_START_URL)).get();
 	   	Elements list = doclist.select("div.list a[href]");
 	   	System.out.println(list.size());
 	   	ArrayList<Contents> contents = new ArrayList<Contents>();
@@ -149,11 +161,19 @@ public class App {
 	
 	
     public static void main( String[] args ) throws Exception {
-    	String props = "";
-    	if (args.length == 1) {
-    		props = args[0];
+    	
+    	if (args.length == 0) {
+    		System.out.println("Usage: mode [property]");
+    		System.out.println("mode - f: fetch, t: test");
+    		System.out.println("[property] - property file path");
+    		return;
     	}
-    	App app = new App(props);
+    	
+    	String mode = args[0];
+    	
+    	App app = new App(args.length == 2 ? args[1] : "");
+    	
+    	
     	 
     }
 }
