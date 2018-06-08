@@ -1,5 +1,7 @@
 package net.zcat.tools.fetchweb;
 
+import java.util.ArrayList;
+
 public class Contents {
 	private String id = null;
 	private String title = null;
@@ -7,6 +9,7 @@ public class Contents {
 	private String text = null;
 	private String auther = null;
 	private String time = null;
+	private ArrayList<Comment> comments = null;
 	
 	public String getId() {
 		return id;
@@ -45,13 +48,31 @@ public class Contents {
 		this.time = time;
 	}
 	
+	public ArrayList<Comment> getComments() {
+		return comments;
+	}
+	public void setComments(ArrayList<Comment> comments) {
+		this.comments = comments;
+	}
+	
 	public String toString() {
-		return id + "," +
-				title + "," +
-				filename  + "," +
-				auther  + "," +
-				time  + "," +
-				text.replaceAll("\n", "") ;
+		StringBuffer sb = new StringBuffer();
+		sb.append(id).append(",");
+		sb.append(title).append(",");
+		sb.append(filename).append(",");
+		sb.append(time).append(",");
+		sb.append(text.replaceAll("\n", "")).append(",[");
+		
+		for (Comment c : comments) {
+			sb.append("{");
+			sb.append(c.getAuther()).append(",");
+			sb.append(c.getTime()).append(",");
+			sb.append(c.getText()).append("},");
+		}
+		sb.append("]");
+		
+		
+		return sb.toString();
 	}
 
 }

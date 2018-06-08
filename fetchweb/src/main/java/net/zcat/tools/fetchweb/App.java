@@ -5,11 +5,19 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
+
+import javax.swing.filechooser.FileFilter;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jsoup.Connection.Response;
@@ -61,7 +69,7 @@ public class App {
 		document_root = appProps.getProperty(Settings.DOCUMENT_ROOT);
 		site_name = appProps.getProperty(Settings.SITE_NAME);
 		site_start_url = appProps.getProperty(Settings.SITE_START_URL);
-				article_list_template = appProps.getProperty(Settings.ARTICLE_LIST_TEMPLATE);
+		article_list_template = appProps.getProperty(Settings.ARTICLE_LIST_TEMPLATE);
 		article_content_template = appProps.getProperty(Settings.ARTICLE_CONTENT_TEMPLATE);
 		article_list_select = appProps.getProperty(Settings.ARTICLE_LIST_SELECT);
 		article_list_history = Integer.valueOf(appProps.getProperty(Settings.ARTICLE_LIST_HISTORY));
@@ -80,8 +88,12 @@ public class App {
 		current_path = document_root + site_name + "/";
 		
 	}
+
+	public void test() throws IOException {
+		fetch(true);
+	}
 	
-	public void execute() throws FileNotFoundException {
+	public void execute() throws FileNotFoundException, IOException {
 		
 		File fdoc = new File(document_root);
 		if (!fdoc.exists()) 
@@ -90,61 +102,26 @@ public class App {
 		if (!fsite.exists()) {
 			fsite.mkdir();
 		}
+		
+		fetch(false);
+		
+//		File[] files = new File(current_path).listFiles(FileFilter);
+//		Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
+//		
+//		Path p = Paths.get(arg0, arg1)
+		
+	}
+
+	public void clearOld() {
+		
+//		Files.walk(Path, FileVisitOption.FOLLOW_LINKS)
+//	       .sorted(Comparator.reverseOrder())
+//	       .map(Path::toFile)
+//	       .peek(System.out::println)
+//	       .forEach(File::delete);
 	}
 	
 	
-	public static void init()  throws FileNotFoundException, IOException {
-    	String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
-    	String appConfigPath = rootPath + "app.properties";
-    	String catalogConfigPath = rootPath + "catalog";
-    	 
-    	Properties appProps = new Properties();
-		appProps.load(new FileInputStream(appConfigPath));
-    	 
-    	Properties catalogProps = new Properties();
-		catalogProps.load(new FileInputStream(catalogConfigPath));
-    	
-		
-		String appVersion = appProps.getProperty("version");
-		String appName = appProps.getProperty("name", "defaultName");
-		String appGroup = appProps.getProperty("group", "baeldung");
-		String appDownloadAddr = appProps.getProperty("downloadAddr");
-		System.out.println(appVersion);
-		System.out.println(appName);
-		System.out.println(appGroup);
-		System.out.println(appDownloadAddr);
-		
-		appProps.list(System.out); // list all key-value pairs
-		 
-		Enumeration<Object> valueEnumeration = appProps.elements();
-		while (valueEnumeration.hasMoreElements()) {
-		    System.out.println(valueEnumeration.nextElement());
-		}
-		 
-		Enumeration<Object> keyEnumeration = appProps.keys();
-		while (keyEnumeration.hasMoreElements()) {
-		    System.out.println(keyEnumeration.nextElement());
-		}
-		 
-		int size = appProps.size();
-		System.out.println(size);		
-		
-    	System.out.println( "Hello World!" );
-    	
-		
-	}
-	
-	/*
-		docroot
-		    wenxuecity
-		        index.html
-		        xxxxxx
-		    boxun
-		        index.html
-		        xxxxxx
-		        
-	
-	*/
 	
 	public void DownloadImage(String url, String local) throws IOException {
     	//Open a URL Stream
@@ -158,7 +135,8 @@ public class App {
     	out.close();
 	}
 	
-	public void fetch(boolean isDownloadImg) throws IOException {
+	public void fetch(boolean isTest) throws IOException {
+		
 		logger.info("fetch article list");
 		Document doclist = Jsoup.connect(this.site_start_url).get();
 	   	Elements list = doclist.select(this.article_list_select);
@@ -171,6 +149,11 @@ public class App {
 	   		Contents ct = new Contents();
 	   		ct.setId(DigestUtils.sha1Hex(linkHref));
 	   		ct.setTitle(linkText);
+	   		
+	   		if (!isTest) {
+	   			File f = new File(current_path + ct.getId());
+	   			if (f.exists()) continue;
+	   		}
 	   		
 			Document detail = Jsoup.connect(linkHref).get();
 			
@@ -186,22 +169,31 @@ public class App {
 	   			String imgSrc = img.attr("abs:src");
 	   			String localSrc = ct.getId() + "/" + DigestUtils.sha1Hex(imgSrc);
 	   			String localPath = this.current_path + localSrc;
-	   			if (isDownloadImg) {
+	   			if (!isTest) {
 	   				DownloadImage(imgSrc, localPath);
 	   			}
 	   			img.attr("src",localSrc);
 	   		}
 	   		Element article = detail.selectFirst(this.article_content);
 	   		ct.setText(article.html());
+	   		
+	   		if (!this.comments_content.isEmpty()) {
+	   			Elements comment_auther = detail.select(this.comments_auther);
+	   			Elements comment_time = detail.select(this.comments_time);
+	   			Elements comment_text = detail.select(this.comments_content);
+	   			for (int i = 0; i < comment_text.size(); i++) {
+	   				Comment cmt = new Comment(); 
+   					cmt.setAuther(comment_auther == null ? site_name : comment_auther.get(i).text());
+	   				cmt.setTime(comment_time == null ? Instant.now().toString() : comment_time.get(i).text());
+	   				cmt.setText(comment_text.get(i).text());
+	   				ct.getComments().add(cmt);
+	   			}
+	   		}
+	   		logger.info(ct.toString());
 	   		contents.add(ct);
 	   	}
-	   	
-	   	
-	   	
-	   	
-	   	
+	   	logger.info("fetch end.");
 	}
-	
 	
     public static void main( String[] args ) throws Exception {
     	
