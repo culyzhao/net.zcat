@@ -14,7 +14,8 @@ public class Settings {
 	public final static String COMMENTS_AUTHER				= "comments.auther";
 	public final static String COMMENTS_TIME				= "comments.time";
 	public final static String COMMENTS_CONTENT				= "comments.content";
+	public final static String COMMENTS_REVERSED			= "comments.reversed";
 	public final static String DOCUMENT_ROOT				= "document.root";
-	public final static String DOCUMENT_LIST_FILE				= "document.list.file";
-	public final static String DOCUMENT_CONTENT_FILE				= "document.content.file";
+	public final static String DOCUMENT_LIST_FILE			= "document.list.file";
+	public final static String DOCUMENT_CONTENT_FILE		= "document.content.file";
 }
