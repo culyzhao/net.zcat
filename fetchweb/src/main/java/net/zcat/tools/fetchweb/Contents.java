@@ -5,11 +5,10 @@ import java.util.ArrayList;
 public class Contents {
 	private String id = null;
 	private String title = null;
-	private String filename = "index.html";
 	private String text = null;
 	private String auther = null;
 	private String time = null;
-	private ArrayList<Comment> comments = null;
+	private ArrayList<Comment> comments = new ArrayList<Comment>();
 	
 	public String getId() {
 		return id;
@@ -22,12 +21,6 @@ public class Contents {
 	}
 	public void setTitle(String title) {
 		this.title = title;
-	}
-	public String getFilename() {
-		return filename;
-	}
-	public void setFilename(String filename) {
-		this.filename = filename;
 	}
 	public String getText() {
 		return text;
@@ -59,7 +52,6 @@ public class Contents {
 		StringBuffer sb = new StringBuffer();
 		sb.append(id).append(",");
 		sb.append(title).append(",");
-		sb.append(filename).append(",");
 		sb.append(time).append(",");
 		sb.append(text.replaceAll("\n", "")).append(",[");
 		

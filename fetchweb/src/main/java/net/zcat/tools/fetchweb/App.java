@@ -1,10 +1,12 @@
 package net.zcat.tools.fetchweb;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,11 +15,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.Properties;
 import java.util.logging.Logger;
-
-import javax.swing.filechooser.FileFilter;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jsoup.Connection.Response;
@@ -39,6 +38,8 @@ public class App {
    	private ArrayList<Contents> contents = new ArrayList<Contents>();
 
    	private String document_root;
+   	private String document_list_file;
+   	private String document_content_file;
    	private String site_name;
    	private String site_start_url;
    	private String article_list_template;
@@ -55,18 +56,36 @@ public class App {
    	
    	private String current_path;
    	
+   	private final static String TEMPLATE_TITLE_LOOP_START = "<!-- title_loop_start -->";
+   	private final static String TEMPLATE_TITLE_LOOP_END = "<!-- title_loop_end -->";
+
+   	private final static String TEMPLATE_COMMENTS_LOOP_START = "<!-- comments_loop_start -->";
+   	private final static String TEMPLATE_COMMENTS_LOOP_END = "<!-- comments_loop_end -->";
+
+   	private final static String TEMPLATE_SITE = "%site%";
+   	private final static String TEMPLATE_PATH = "%path%";
+	private final static String TEMPLATE_TITLE = "%title%";
+	private final static String TEMPLATE_AUTHER = "%auther%";
+	private final static String TEMPLATE_TIME = "%time%";
+	private final static String TEMPLATE_ARTICLE = "%article%";
+	private final static String TEMPLATE_COMMENT_AUTHER = "%comment.auther%";
+	private final static String TEMPLATE_COMMENT_TIME = "%comment.time%";	
+	private final static String TEMPLATE_COMMENT = "%comment%";
+	
+   	private final static String DEFAULT_LIST_TEMPLATE = "./list.html";
+   	private final static String DEFAULT_CONTENT_TEMPLATE = "./content.html";
+
+   	
 	public App(String propsPath) throws FileNotFoundException, IOException {
-		
-		String rootPath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
-		String appConfigPath = rootPath + "app.properties";
-		if (propsPath != null && !propsPath.isEmpty()) {
-			appConfigPath = propsPath;
-		}
+				
+		String appConfigPath = propsPath;
 		logger.info("Load properties from " + appConfigPath);
 
 		appProps.load(new FileInputStream(appConfigPath));
 		
 		document_root = appProps.getProperty(Settings.DOCUMENT_ROOT);
+		document_list_file = appProps.getProperty(Settings.DOCUMENT_LIST_FILE);
+		document_content_file = appProps.getProperty(Settings.DOCUMENT_CONTENT_FILE);
 		site_name = appProps.getProperty(Settings.SITE_NAME);
 		site_start_url = appProps.getProperty(Settings.SITE_START_URL);
 		article_list_template = appProps.getProperty(Settings.ARTICLE_LIST_TEMPLATE);
@@ -80,13 +99,18 @@ public class App {
 		comments_auther = appProps.getProperty(Settings.COMMENTS_AUTHER);
 		comments_time = appProps.getProperty(Settings.COMMENTS_TIME);
 		comments_content = appProps.getProperty(Settings.COMMENTS_CONTENT);
-
+		
 		if (document_root.charAt(document_root.length() - 1) != '/') {
 			document_root += "/";
 		}
 		
-		current_path = document_root + site_name + "/";
+		if (article_list_template.isEmpty()) article_list_template = App.DEFAULT_LIST_TEMPLATE;
+		if (article_content_template.isEmpty()) article_content_template = App.DEFAULT_CONTENT_TEMPLATE;
 		
+		current_path = document_root + site_name + "/";
+		logger.info(appProps.toString());
+		logger.info("article_list_template="+this.article_list_template);
+		logger.info("article_content_template="+this.article_content_template);
 	}
 
 	public void test() throws IOException {
@@ -104,29 +128,95 @@ public class App {
 		}
 		
 		fetch(false);
-		
-//		File[] files = new File(current_path).listFiles(FileFilter);
-//		Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
-//		
-//		Path p = Paths.get(arg0, arg1)
+		createHtml();
+		clearOld();
 		
 	}
 
-	public void clearOld() {
+	public void clearOld() throws IOException {
 		
-//		Files.walk(Path, FileVisitOption.FOLLOW_LINKS)
-//	       .sorted(Comparator.reverseOrder())
-//	       .map(Path::toFile)
-//	       .peek(System.out::println)
-//	       .forEach(File::delete);
+		logger.info("clear history.");
+		File[] files = Files.list(Paths.get(current_path)).filter(Files::isDirectory).toArray(File[]::new);
+		Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
+		
+		if (files.length <= this.article_list_history)
+			return;
+		
+		for (int i = this.article_list_history; i < files.length; i++) {
+			Files.walk(files[i].toPath(), FileVisitOption.FOLLOW_LINKS)
+		       .sorted(Comparator.reverseOrder())
+		       .map(Path::toFile)
+		       .peek(System.out::println)
+		       .forEach(File::delete);
+		}
+		
 	}
 	
+	public void createHtml() throws IOException {
+		String listHtml = new String(Files.readAllBytes(Paths.get(this.article_list_template)));
+		String contentHtml = new String(Files.readAllBytes(Paths.get(this.article_content_template)));
+		
+		listHtml = listHtml.replaceAll(App.TEMPLATE_SITE, site_name);
+		
+		String titleLine = listHtml.substring(listHtml.indexOf(App.TEMPLATE_TITLE_LOOP_START) + App.TEMPLATE_TITLE_LOOP_START.length(), 
+				listHtml.indexOf(App.TEMPLATE_TITLE_LOOP_END));
+		
+		StringBuffer listBuf = new StringBuffer();
+		StringBuffer contBuf = new StringBuffer();
+		
+		for (Contents ct : contents) {
+			
+			listBuf.append(
+				titleLine.replaceAll(App.TEMPLATE_TIME, ct.getTime()).
+					replaceAll(App.TEMPLATE_TITLE, ct.getTitle()).
+					replaceAll(App.TEMPLATE_AUTHER, ct.getAuther()).
+					replaceAll(App.TEMPLATE_PATH, ct.getId() + "/")
+			).append("\n");
+			
+			String newContentHtml = contentHtml.replaceAll(App.TEMPLATE_TITLE, ct.getTitle()).
+					replaceAll(App.TEMPLATE_AUTHER, ct.getAuther()).
+					replaceAll(App.TEMPLATE_TIME, ct.getTime()).
+					replaceAll(App.TEMPLATE_ARTICLE, ct.getText());
+			
+			String commentLine = newContentHtml.substring(newContentHtml.indexOf(App.TEMPLATE_COMMENTS_LOOP_START) + App.TEMPLATE_COMMENTS_LOOP_START.length(), 
+					listHtml.indexOf(App.TEMPLATE_COMMENTS_LOOP_END));
+			
+			for (Comment cmt : ct.getComments()) {
+				contBuf.append(
+						commentLine.replaceAll(App.TEMPLATE_COMMENT_AUTHER, cmt.getAuther()).
+						replaceAll(App.TEMPLATE_COMMENT_TIME, cmt.getTime()).
+						replaceAll(App.TEMPLATE_COMMENT, cmt.getText())
+				).append("\n");
+			}
+
+			newContentHtml = newContentHtml.substring(0, newContentHtml.indexOf(TEMPLATE_COMMENTS_LOOP_START)) + 
+					(contBuf.length() == 0 ? "" : contBuf.toString()) +
+					newContentHtml.substring(newContentHtml.indexOf(App.TEMPLATE_COMMENTS_LOOP_END) + App.TEMPLATE_COMMENTS_LOOP_END.length());				
+			String out = current_path + ct.getId() + "/" + this.document_content_file;
+			logger.info("write: " + out);
+			BufferedWriter contFile = Files.newBufferedWriter(Paths.get(out), 
+	                StandardCharsets.UTF_8);
+			contFile.write(newContentHtml);
+			contFile.close();
+		
+		}
+		
+		listHtml = listHtml.substring(0, listHtml.indexOf(App.TEMPLATE_TITLE_LOOP_START)) + listBuf.toString() + 
+				listHtml.substring(listHtml.indexOf(App.TEMPLATE_TITLE_LOOP_END) + App.TEMPLATE_TITLE_LOOP_END.length());
+		
+		logger.info("write: " + current_path + this.document_list_file);
+		BufferedWriter listFile = Files.newBufferedWriter(Paths.get(current_path + this.document_list_file), 
+                StandardCharsets.UTF_8);
+		listFile.write(listHtml);
+		listFile.close();
+		
+		
+	}
 	
 	
 	public void DownloadImage(String url, String local) throws IOException {
     	//Open a URL Stream
-    	Response resultImageResponse = Jsoup.connect(url).cookies(null)
-    	                                        .ignoreContentType(true).execute();
+    	Response resultImageResponse = Jsoup.connect(url).ignoreContentType(true).execute();
     	// output here
     	FileOutputStream out = (new FileOutputStream(new java.io.File(local)));
 
@@ -163,7 +253,7 @@ public class App {
 			Element time = detail.selectFirst(this.article_time);
 			ct.setTime( time == null ? Instant.now().toString() : time.text());
 
-			Elements imgs = detail.select(appProps.getProperty(Settings.ARTICLE_IMAGE));
+			Elements imgs = detail.select(this.article_image);
 	   		
 	   		for (Element img : imgs) {
 	   			String imgSrc = img.attr("abs:src");
@@ -189,7 +279,8 @@ public class App {
 	   				ct.getComments().add(cmt);
 	   			}
 	   		}
-	   		logger.info(ct.toString());
+	   		if (isTest) 
+	   			logger.info(ct.toString());
 	   		contents.add(ct);
 	   	}
 	   	logger.info("fetch end.");
@@ -197,18 +288,22 @@ public class App {
 	
     public static void main( String[] args ) throws Exception {
     	
-    	if (args.length == 0) {
-    		System.out.println("Usage: mode [property]");
+    	if (args.length != 2 || args[1].isEmpty()) {
+    		System.out.println("Usage: mode property");
     		System.out.println("mode - f: fetch, t: test");
-    		System.out.println("[property] - property file path");
+    		System.out.println("property - property file path");
     		return;
     	}
     	
     	String mode = args[0];
     	
-    	App app = new App(args.length == 2 ? args[1] : "");
+    	App app = new App(args[1]);
     	
-    	
+    	if (mode.equals("t")) {
+    		app.test();
+    	} else {
+    		app.execute();
+    	}
     	 
     }
 }
