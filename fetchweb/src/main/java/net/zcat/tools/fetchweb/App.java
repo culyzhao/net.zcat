@@ -12,12 +12,20 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Properties;
 import java.util.logging.Logger;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.jsoup.Connection.Response;
@@ -167,7 +175,7 @@ public class App {
 		String listHtml = new String(Files.readAllBytes(Paths.get(this.article_list_template)));
 		String contentHtml = new String(Files.readAllBytes(Paths.get(this.article_content_template)));
 		
-		listHtml = listHtml.replaceAll(App.TEMPLATE_SITE, site_name);
+		listHtml = listHtml.replace(App.TEMPLATE_SITE, site_name);
 		
 		String titleLine = listHtml.substring(listHtml.indexOf(App.TEMPLATE_TITLE_LOOP_START) + App.TEMPLATE_TITLE_LOOP_START.length(), 
 				listHtml.indexOf(App.TEMPLATE_TITLE_LOOP_END));
@@ -179,25 +187,25 @@ public class App {
 			StringBuffer contBuf = new StringBuffer();
 			try {
 				listBuf.append(
-					titleLine.replaceAll(App.TEMPLATE_TIME, ct.getTime()).
-						replaceAll(App.TEMPLATE_TITLE, ct.getTitle()).
-						replaceAll(App.TEMPLATE_AUTHER, ct.getAuther()).
-						replaceAll(App.TEMPLATE_PATH, ct.getId() + "/")
+					titleLine.replace(App.TEMPLATE_TIME, ct.getTime()).
+						replace(App.TEMPLATE_TITLE, ct.getTitle()).
+						replace(App.TEMPLATE_AUTHER, ct.getAuther()).
+						replace(App.TEMPLATE_PATH, ct.getId() + "/")
 				).append("\n");
 				
-				newContentHtml = contentHtml.replaceAll(App.TEMPLATE_TITLE, ct.getTitle()).
-						replaceAll(App.TEMPLATE_AUTHER, ct.getAuther()).
-						replaceAll(App.TEMPLATE_TIME, ct.getTime()).
-						replaceAll(App.TEMPLATE_ARTICLE, ct.getText());
+				newContentHtml = contentHtml.replace(App.TEMPLATE_TITLE, ct.getTitle()).
+						replace(App.TEMPLATE_AUTHER, ct.getAuther()).
+						replace(App.TEMPLATE_TIME, ct.getTime()).
+						replace(App.TEMPLATE_ARTICLE, ct.getText());
 				
 				String commentLine = newContentHtml.substring(newContentHtml.indexOf(App.TEMPLATE_COMMENTS_LOOP_START) + App.TEMPLATE_COMMENTS_LOOP_START.length(), 
 						newContentHtml.indexOf(App.TEMPLATE_COMMENTS_LOOP_END));
 				
 				for (Comment cmt : ct.getComments()) {
 					contBuf.append(
-							commentLine.replaceAll(App.TEMPLATE_COMMENT_AUTHER, cmt.getAuther()).
-							replaceAll(App.TEMPLATE_COMMENT_TIME, cmt.getTime()).
-							replaceAll(App.TEMPLATE_COMMENT, cmt.getText())
+							commentLine.replace(App.TEMPLATE_COMMENT_AUTHER, cmt.getAuther()).
+							replace(App.TEMPLATE_COMMENT_TIME, cmt.getTime()).
+							replace(App.TEMPLATE_COMMENT, cmt.getText())
 					).append("\n");
 				}
 	
@@ -232,12 +240,38 @@ public class App {
 		
 	}
 	
+	public static SSLContext createIgnoreVerifySSL() throws NoSuchAlgorithmException, KeyManagementException {  
+	    SSLContext sc = SSLContext.getInstance("SSLv3");  
+	  
+	    // 实现一个X509TrustManager接口，用于绕过验证，不用修改里面的方法  
+	    X509TrustManager trustManager = new X509TrustManager() {  
+	        @Override  
+	        public void checkClientTrusted(  
+	                java.security.cert.X509Certificate[] paramArrayOfX509Certificate,  
+	                String paramString) throws CertificateException {  
+	        }  
+	  
+	        @Override  
+	        public void checkServerTrusted(  
+	                java.security.cert.X509Certificate[] paramArrayOfX509Certificate,  
+	                String paramString) throws CertificateException {  
+	        }  
+	  
+	        @Override  
+	        public java.security.cert.X509Certificate[] getAcceptedIssuers() {  
+	            return null;  
+	        }  
+	    };  
+	  
+	    sc.init(null, new TrustManager[] { trustManager }, null);  
+	    return sc;  
+	}  
 	
 	public void DownloadImage(String url, String local) throws IOException {
     	//Open a URL Stream
 		logger.info("download image: " + url);
     	
-		Response resultImageResponse = Jsoup.connect(url).sslSocketFactory(null).ignoreContentType(true).execute();
+		Response resultImageResponse = Jsoup.connect(url).sslSocketFactory(null).ignoreContentType(true).timeout(60000).execute();
     	// output here
     	FileOutputStream out = (new FileOutputStream(new java.io.File(local)));
 
