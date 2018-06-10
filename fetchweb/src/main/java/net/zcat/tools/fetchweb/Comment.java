@@ -2,7 +2,7 @@ package net.zcat.tools.fetchweb;
 
 public class Comment {
 	private String text = null;
-	private String auther = null;
+	private String author = null;
 	private String time = null;
 	
 	public String getText() {
@@ -11,11 +11,11 @@ public class Comment {
 	public void setText(String text) {
 		this.text = text;
 	}
-	public String getAuther() {
-		return auther;
+	public String getAuthor() {
+		return author;
 	}
-	public void setAuther(String auther) {
-		this.auther = auther;
+	public void setAuthor(String author) {
+		this.author = author;
 	}
 	public String getTime() {
 		return time;

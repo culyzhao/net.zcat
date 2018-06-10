@@ -6,8 +6,9 @@ public class Contents {
 	private String id = null;
 	private String title = null;
 	private String text = null;
-	private String auther = null;
+	private String author = null;
 	private String time = null;
+	private boolean fetched = false;
 	private ArrayList<Comment> comments = new ArrayList<Comment>();
 	
 	public String getId() {
@@ -28,11 +29,11 @@ public class Contents {
 	public void setText(String text) {
 		this.text = text;
 	}
-	public String getAuther() {
-		return auther;
+	public String getAuthor() {
+		return author;
 	}
-	public void setAuther(String auther) {
-		this.auther = auther;
+	public void setAuthor(String author) {
+		this.author = author;
 	}
 	public String getTime() {
 		return time;
@@ -48,16 +49,24 @@ public class Contents {
 		this.comments = comments;
 	}
 	
+	public boolean isFetched() {
+		return fetched;
+	}
+	public void setFetched(boolean fetched) {
+		this.fetched = fetched;
+	}
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append(id).append(",");
 		sb.append(title).append(",");
+		sb.append(author).append(",");
 		sb.append(time).append(",");
+		sb.append(fetched).append(",");
 		sb.append(text.replaceAll("\n", "")).append(",[");
 		
 		for (Comment c : comments) {
 			sb.append("{");
-			sb.append(c.getAuther()).append(",");
+			sb.append(c.getAuthor()).append(",");
 			sb.append(c.getTime()).append(",");
 			sb.append(c.getText()).append("},");
 		}

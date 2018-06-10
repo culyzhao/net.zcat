@@ -55,11 +55,11 @@ public class App {
    	private String article_list_select;
    	private String article_content_template;
    	private int article_list_history;
-   	private String article_auther;
+   	private String article_author;
    	private String article_time;
    	private String article_image;
    	private String article_content;
-   	private String comments_auther;
+   	private String comments_author;
    	private String comments_time;
    	private String comments_content;
    	private int comments_reversed;
@@ -75,10 +75,10 @@ public class App {
    	private final static String TEMPLATE_SITE = "%site%";
    	private final static String TEMPLATE_PATH = "%path%";
 	private final static String TEMPLATE_TITLE = "%title%";
-	private final static String TEMPLATE_AUTHER = "%auther%";
+	private final static String TEMPLATE_AUTHOR = "%author%";
 	private final static String TEMPLATE_TIME = "%time%";
 	private final static String TEMPLATE_ARTICLE = "%article%";
-	private final static String TEMPLATE_COMMENT_AUTHER = "%comment.auther%";
+	private final static String TEMPLATE_COMMENT_AUTHOR = "%comment.author%";
 	private final static String TEMPLATE_COMMENT_TIME = "%comment.time%";	
 	private final static String TEMPLATE_COMMENT = "%comment%";
 	
@@ -102,11 +102,11 @@ public class App {
 		article_content_template = appProps.getProperty(Settings.ARTICLE_CONTENT_TEMPLATE);
 		article_list_select = appProps.getProperty(Settings.ARTICLE_LIST_SELECT);
 		article_list_history = Integer.valueOf(appProps.getProperty(Settings.ARTICLE_LIST_HISTORY));
-		article_auther = appProps.getProperty(Settings.ARTICLE_AUTHER);
+		article_author = appProps.getProperty(Settings.ARTICLE_AUTHOR);
 		article_time = appProps.getProperty(Settings.ARTICLE_TIME);
 		article_image = appProps.getProperty(Settings.ARTICLE_IMAGE);
 		article_content = appProps.getProperty(Settings.ARTICLE_CONTENT);
-		comments_auther = appProps.getProperty(Settings.COMMENTS_AUTHER);
+		comments_author = appProps.getProperty(Settings.COMMENTS_AUTHOR);
 		comments_time = appProps.getProperty(Settings.COMMENTS_TIME);
 		comments_content = appProps.getProperty(Settings.COMMENTS_CONTENT);
 		comments_reversed = Integer.valueOf(appProps.getProperty(Settings.COMMENTS_REVERSED));
@@ -124,11 +124,11 @@ public class App {
 		logger.info("article_content_template="+this.article_content_template);
 	}
 
-	public void test() throws IOException {
+	public void test() throws IOException, KeyManagementException, NoSuchAlgorithmException {
 		fetch(true);
 	}
 	
-	public void execute() throws FileNotFoundException, IOException {
+	public void execute() throws FileNotFoundException, IOException, KeyManagementException, NoSuchAlgorithmException {
 		
 		File fdoc = new File(document_root);
 		if (!fdoc.exists()) 
@@ -139,9 +139,8 @@ public class App {
 		}
 		
 		fetch(false);
-		createHtml();
 		clearOld();
-		
+		createHtml();
 	}
 
 	public void clearOld() throws IOException {
@@ -155,10 +154,10 @@ public class App {
             };
          });
 		
-		Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
-		
 		if (files.length <= this.article_list_history)
 			return;
+
+		Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
 		
 		for (int i = this.article_list_history; i < files.length; i++) {
 			Files.walk(files[i].toPath(), FileVisitOption.FOLLOW_LINKS)
@@ -182,19 +181,24 @@ public class App {
 		
 		StringBuffer listBuf = new StringBuffer();
 		
-		for (Contents ct : contents) {
+		for (int i = contents.size() - 1 ; i >= 0; i--) {
+			Contents ct = contents.get(i);
+			if (!Files.exists(Paths.get(current_path + ct.getId()))) continue;
+			
 			String newContentHtml = null;
 			StringBuffer contBuf = new StringBuffer();
 			try {
 				listBuf.append(
 					titleLine.replace(App.TEMPLATE_TIME, ct.getTime()).
 						replace(App.TEMPLATE_TITLE, ct.getTitle()).
-						replace(App.TEMPLATE_AUTHER, ct.getAuther()).
+						replace(App.TEMPLATE_AUTHOR, ct.getAuthor()).
 						replace(App.TEMPLATE_PATH, ct.getId() + "/")
 				).append("\n");
 				
+				if (ct.isFetched()) continue;
+				
 				newContentHtml = contentHtml.replace(App.TEMPLATE_TITLE, ct.getTitle()).
-						replace(App.TEMPLATE_AUTHER, ct.getAuther()).
+						replace(App.TEMPLATE_AUTHOR, ct.getAuthor()).
 						replace(App.TEMPLATE_TIME, ct.getTime()).
 						replace(App.TEMPLATE_ARTICLE, ct.getText());
 				
@@ -203,7 +207,7 @@ public class App {
 				
 				for (Comment cmt : ct.getComments()) {
 					contBuf.append(
-							commentLine.replace(App.TEMPLATE_COMMENT_AUTHER, cmt.getAuther()).
+							commentLine.replace(App.TEMPLATE_COMMENT_AUTHOR, cmt.getAuthor()).
 							replace(App.TEMPLATE_COMMENT_TIME, cmt.getTime()).
 							replace(App.TEMPLATE_COMMENT, cmt.getText())
 					).append("\n");
@@ -267,11 +271,11 @@ public class App {
 	    return sc;  
 	}  
 	
-	public void DownloadImage(String url, String local) throws IOException {
+	public void DownloadImage(String url, String local) throws IOException, KeyManagementException, NoSuchAlgorithmException {
     	//Open a URL Stream
 		logger.info("download image: " + url);
     	
-		Response resultImageResponse = Jsoup.connect(url).sslSocketFactory(null).ignoreContentType(true).timeout(60000).execute();
+		Response resultImageResponse = Jsoup.connect(url).sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).ignoreContentType(true).timeout(60000).execute();
     	// output here
     	FileOutputStream out = (new FileOutputStream(new java.io.File(local)));
 
@@ -280,16 +284,17 @@ public class App {
     	out.close();
 	}
 	
-	public void fetch(boolean isTest) throws IOException {
+	public void fetch(boolean isTest) throws IOException, KeyManagementException, NoSuchAlgorithmException {
 		
 		logger.info("fetch article list");
 		
-		Document doclist = Jsoup.connect(this.site_start_url).sslSocketFactory(null).get();
+		Document doclist = Jsoup.connect(this.site_start_url).sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).get();
 	   	Elements list = doclist.select(this.article_list_select);
 	   	logger.info("list size=" + list.size());
 	   	
-	   	for (Element link : list) {
-	   		
+	   	for (int n = (list.size() > this.article_list_history ? this.article_list_history : list.size()) - 1; n >= 0 ; n--) {
+	   		Element link = list.get(n);
+
 	   		String linkHref = null;
 	   		String linkText = null;
 	   		
@@ -303,14 +308,22 @@ public class App {
 		   		logger.info("found: " + linkText);
 		   		if (!isTest) {
 		   			File f = new File(current_path + ct.getId());
-		   			if (f.exists()) continue;
+		   			if (f.exists()) {
+		   				ct.setFetched(true);
+		   				logger.info("fetched, parse local page.");
+		   				Document page = Jsoup.parse(new File(current_path + ct.getId() + "/" + this.document_content_file), "UTF-8", this.site_start_url);
+		   				ct.setAuthor(page.selectFirst("meta[name=author]").attr("content"));
+		   				ct.setTime(page.selectFirst("meta[name=time]").attr("content"));
+		   				contents.add(ct);
+		   				continue;
+		   			}
 		   			f.mkdir();
 		   		}
 		   		
-				Document detail = Jsoup.connect(linkHref).sslSocketFactory(null).get();
+				Document detail = Jsoup.connect(linkHref).sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).get();;
 				
-				Element auther = detail.selectFirst(this.article_auther);
-				ct.setAuther( auther == null ? this.site_name : auther.text());
+				Element author = detail.selectFirst(this.article_author);
+				ct.setAuthor( author == null ? this.site_name : author.text());
 				
 				Element time = detail.selectFirst(this.article_time);
 				ct.setTime( time == null ? Instant.now().toString() : time.text());
@@ -330,12 +343,12 @@ public class App {
 		   		ct.setText(article.html());
 		   		
 		   		if (!this.comments_content.isEmpty()) {
-		   			Elements comment_auther = detail.select(this.comments_auther);
+		   			Elements comment_author = detail.select(this.comments_author);
 		   			Elements comment_time = detail.select(this.comments_time);
 		   			Elements comment_text = detail.select(this.comments_content);
 		   			for (int i = 0; i < comment_text.size(); i++) {
 		   				Comment cmt = new Comment(); 
-	   					cmt.setAuther(comment_auther == null ? site_name : comment_auther.get(i).text());
+	   					cmt.setAuthor(comment_author == null ? site_name : comment_author.get(i).text());
 		   				cmt.setTime(comment_time == null ? Instant.now().toString() : comment_time.get(i).text());
 		   				cmt.setText(comment_text.get(i).text());
 		   				if (this.comments_reversed == 1) {
@@ -345,8 +358,7 @@ public class App {
 		   				}
 		   			}
 		   		}
-		   		if (isTest) 
-		   			logger.info(ct.toString());
+		   		if (isTest) logger.info(ct.toString());
 		   		
 	   		} catch (Exception e) {
 	   			logger.info("Error: ");
@@ -356,8 +368,6 @@ public class App {
 	   			continue;
 	   		}
 	   		contents.add(ct);
-	   		if (contents.size() >= this.article_list_history)
-	   			break;
 	   	}
 	   	logger.info("fetch end.");
 	}

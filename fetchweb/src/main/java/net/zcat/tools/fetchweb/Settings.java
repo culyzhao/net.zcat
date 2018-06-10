@@ -7,11 +7,11 @@ public class Settings {
 	public final static String ARTICLE_CONTENT_TEMPLATE		= "article.content.template";
 	public final static String ARTICLE_LIST_HISTORY			= "article.list.history";
 	public final static String ARTICLE_LIST_SELECT			= "article.list.select";
-	public final static String ARTICLE_AUTHER				= "article.auther";
+	public final static String ARTICLE_AUTHOR				= "article.author";
 	public final static String ARTICLE_TIME					= "article.time";
 	public final static String ARTICLE_IMAGE				= "article.image";
 	public final static String ARTICLE_CONTENT				= "article.content";
-	public final static String COMMENTS_AUTHER				= "comments.auther";
+	public final static String COMMENTS_AUTHOR				= "comments.author";
 	public final static String COMMENTS_TIME				= "comments.time";
 	public final static String COMMENTS_CONTENT				= "comments.content";
 	public final static String COMMENTS_REVERSED			= "comments.reversed";
