@@ -58,6 +58,8 @@ public class App {
    	private String article_author;
    	private String article_time;
    	private String article_image;
+   	private String article_youtube;
+   	private String article_youtube_server;
    	private String article_content;
    	private String comments_author;
    	private String comments_time;
@@ -105,6 +107,8 @@ public class App {
 		article_author = appProps.getProperty(Settings.ARTICLE_AUTHOR);
 		article_time = appProps.getProperty(Settings.ARTICLE_TIME);
 		article_image = appProps.getProperty(Settings.ARTICLE_IMAGE);
+		article_youtube = appProps.getProperty(Settings.ARTICLE_YOUTUBE);
+		article_youtube_server = appProps.getProperty(Settings.ARTICLE_YOUTUBE_SERVER);
 		article_content = appProps.getProperty(Settings.ARTICLE_CONTENT);
 		comments_author = appProps.getProperty(Settings.COMMENTS_AUTHOR);
 		comments_time = appProps.getProperty(Settings.COMMENTS_TIME);
@@ -307,8 +311,8 @@ public class App {
 		   		ct.setTitle(linkText);
 		   		logger.info("found: " + linkText);
 		   		if (!isTest) {
-		   			File f = new File(current_path + ct.getId());
-		   			if (f.exists()) {
+		   			File fi = new File(current_path + ct.getId() + "/" + this.document_content_file);
+		   			if (fi.exists()) {
 		   				ct.setFetched(true);
 		   				logger.info("fetched, parse local page.");
 		   				Document page = Jsoup.parse(new File(current_path + ct.getId() + "/" + this.document_content_file), "UTF-8", this.site_start_url);
@@ -317,7 +321,8 @@ public class App {
 		   				contents.add(ct);
 		   				continue;
 		   			}
-		   			f.mkdir();
+		   			File fd = new File(current_path + ct.getId());
+		   			if (!fd.exists()) fd.mkdir();
 		   		}
 		   		
 				Document detail = Jsoup.connect(linkHref).sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).get();;
@@ -339,6 +344,21 @@ public class App {
 		   			}
 		   			img.attr("src",imgId);
 		   		}
+		   		
+		   		Elements videos = detail.select(this.article_youtube);
+		   		for (Element video : videos) {
+		   			String videoSrc = video.attr("src");
+		   			if (videoSrc.startsWith("https")) {
+		   				videoSrc = videoSrc.replace("https://www.youtube.com", this.article_youtube_server);
+		   			} else {
+		   				videoSrc = videoSrc.replace("http://www.youtube.com", this.article_youtube_server);
+		   			}
+		   			video.attr("src", videoSrc);
+		   			video.attr("width", "100%");
+		   			video.attr("height", "100%");
+		   			video.wrap("<div class=\"auto-resizable-iframe\"><div></div></div>");
+		   		}
+		   		
 		   		Element article = detail.selectFirst(this.article_content);
 		   		ct.setText(article.html());
 		   		

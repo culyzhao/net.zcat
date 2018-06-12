@@ -10,6 +10,8 @@ public class Settings {
 	public final static String ARTICLE_AUTHOR				= "article.author";
 	public final static String ARTICLE_TIME					= "article.time";
 	public final static String ARTICLE_IMAGE				= "article.image";
+	public final static String ARTICLE_YOUTUBE				= "article.youtube";
+	public final static String ARTICLE_YOUTUBE_SERVER		= "article.youtube.server";	
 	public final static String ARTICLE_CONTENT				= "article.content";
 	public final static String COMMENTS_AUTHOR				= "comments.author";
 	public final static String COMMENTS_TIME				= "comments.time";
