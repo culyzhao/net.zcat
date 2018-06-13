@@ -1,0 +1,501 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+	<title>默写</title>
+
+	<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+	<link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<!-- Latest compiled and minified CSS -->
+	<link href="https://cdn.bootcss.com/bootstrap-select/2.0.0-beta1/css/bootstrap-select.min.css" rel="stylesheet">
+	<link href="https://cdn.bootcss.com/jquery-confirm/3.3.2/jquery-confirm.min.css" rel="stylesheet">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+	<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+	<script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>	
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://cdn.bootcss.com/bootstrap-select/2.0.0-beta1/js/bootstrap-select.min.js"></script>
+	<script src="https://cdn.bootcss.com/jquery-confirm/3.3.2/jquery-confirm.min.js"></script>
+
+	<style type="text/css">
+		pre {
+		white-space: pre-wrap; /*css-3*/
+		white-space: -moz-pre-wrap; /*Mozilla,since1999*/
+		white-space: -pre-wrap; /*Opera4-6*/
+		white-space: -o-pre-wrap; /*Opera7*/
+		word-wrap: break-word; /*InternetExplorer5.5+*/
+		}
+		form-control-width {
+    		width: 100px;
+		}
+		/* Start by setting display:none to make this hidden.
+		   Then we position it in relation to the viewport window
+		   with position:fixed. Width, height, top and left speak
+		   for themselves. Background we set to 80% white with
+		   our animation centered, and no-repeating */
+		.modal {
+		    display:    none;
+		    position:   fixed;
+		    z-index:    1000;
+		    top:        0;
+		    left:       0;
+		    height:     100%;
+		    width:      100%;
+		    background: rgba( 255, 255, 255, .8 ) 
+		                url('loader3.gif') 
+		                50% 50% 
+		                no-repeat;
+		}
+
+		/* When the body has the loading class, we turn
+		   the scrollbar off with overflow:hidden */
+		body.loading .modal {
+		    overflow: hidden;   
+		}
+
+		/* Anytime the body has the loading class, our
+		   modal element will be visible */
+		body.loading .modal {
+		    display: block;
+		}		
+	</style> 
+
+</head>
+
+<body>
+	<div class="container center-block">
+	    <audio id="tts" src=""></audio>
+	    <center>
+		<h3>默写助手<small> by foolcat</small></h3>
+		<hr>
+
+		<ul class="nav nav-tabs" role="tablist">  
+		  <li role="presentation" class="active"><a href="#home" role="tab" data-toggle="tab">Home</a></li>  
+		  <li role="presentation"><a href="#edit" role="tab" data-toggle="tab">Edit</a></li>  
+		</ul>  
+		<br><br>
+
+		<div class="tab-content">  
+		  	<div role="tabpanel" class="tab-pane active" id="home">
+				<select id="sel-subject" class="selectpicker"></select><br><br>
+				<select id="sel-grade" class="selectpicker"></select><br><br>
+				<select id="sel-unit" class="selectpicker"></select><br><br>
+			    <label><input id="chk-rand" type="checkbox"> 随机顺序</label>&nbsp;
+			    <label><input id="chk-long" type="checkbox"> 3-4字词语</label>
+				<br><br>
+				<p class="bg-info">本文共<span id="total" class="badge">0</span>个，播放第<span id="hint" class="badge">0</span>个</p>
+				<br>
+		    	<button id="btn-next" type="button" class="btn btn-primary btn-lg">下一个</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<button id="btn-replay" type="button" class="btn btn-success btn-lg">没听清</button>
+				<br><br>
+				<span id="warning" class="label label-warning"></span>
+				<br><br>
+				<pre id="words"></pre>
+		  	</div>  
+		  	<div role="tabpanel" class="tab-pane" id="edit">
+		  			  <div class="form-group" style=" width:271px;">
+		  			  		<button id="del-subject" type="button" class="btn btn-default">Del</button>
+		  			  		<select id="sel2-subject" class="selectpicker"></select>
+					    	<div class="input-group">
+	      						<input id="inp-subject" type="text" class="form-control form-control-width">
+	      						<span class="input-group-btn">
+	        						<button id="btn-subject" class="btn btn-default" type="button">Save</button>
+	      						</span>
+	    					</div>
+      						<small>半角逗号分隔，代码限zh或en</small><br>
+	    					<br>
+	    					<button id="del-grade" type="button" class="btn btn-default">Del</button>
+							<select id="sel2-grade" class="selectpicker"></select><br>
+					    	<div class="input-group">
+	      						<input id="inp-grade" type="text" class="form-control form-control-width">
+	      						<span class="input-group-btn">
+	        						<button id="btn-grade" class="btn btn-default" type="button">Save</button>
+	      						</span>
+	    					</div>
+	    					<br>
+	    					<button id="del-unit" type="button" class="btn btn-default">Del</button>
+							<select id="sel2-unit" class="selectpicker"></select><br>
+					    	<div class="input-group">
+	      						<input id="inp-unit" type="text" class="form-control form-control-width">
+	      						<span class="input-group-btn">
+	        						<button id="btn-unit" class="btn btn-default" type="button">Save</button>
+	      						</span>
+	    					</div>
+  							<div class="form-group">
+    							<textarea id="inp-words" class="form-control" rows="10"></textarea>
+  							</div>
+  							<small>全角或者半角逗号分隔每个词语</small>
+		  			  </div>
+		  	</div>  
+		</div>  
+		<span id="editmsg" class="label label-warning"></span>
+		</center>
+	</div>
+	
+	<script>
+
+	var index = 0;
+	var last = 0;
+	var lang = "";
+
+
+	$body = $("body");
+
+	$(document).on({
+    	ajaxStart: function() { $body.addClass("loading");    },
+     	ajaxStop: function() { $body.removeClass("loading"); }    
+	});
+
+
+	function randomsort(a, b) {
+	    return Math.random()>.5 ? -1 : 1;
+	    //用Math.random()函数生成0~1之间的随机数与0.5比较，返回-1或1
+	}
+
+	function playwords(word) {
+
+		$("#hint").text(index);
+       	//document.getElementById("tts").src = "http://tts.baidu.com/text2audio?lan=uk&ie=UTF-8&spd=2&text="+word;
+       	//document.getElementById("tts").src = "http://tsn.baidu.com/text2audio?lan=zh&ctp=1&cuid=10642668&tok=24.3bf1eee64b56830b2168bf1674f63220.2592000.1520008239.282335-10642668&vol=9&per=0&spd=4&pit=5&tex="+word;
+       	document.getElementById("tts").src = "https://sp0.baidu.com/-rM1hT4a2gU2pMbgoY3K/gettts?lan=" + lang + "&spd=2&source=alading&text=" + word;
+       	document.getElementById("tts").play();
+	}
+
+	function initDropDown(obj, title, repaint) {
+		obj.empty();
+		obj.append('<option selected="true" disabled>' + title + '</option>');
+		obj.prop('selectedIndex', 0);
+		if (repaint) {
+			obj.selectpicker('render');
+			obj.selectpicker('refresh');	
+		} 
+	}
+
+	function fillDropDown(obj, list) {
+	 	$.each(list, function (key, entry) {
+	    	obj.append($('<option></option>').attr('value', key).text(entry.Name));
+	  	});
+	  	obj.selectpicker('render');
+	  	obj.selectpicker('refresh');
+	}
+
+	function fillDropDownWithAdd(obj, list) {
+	 	$.each(list, function (key, entry) {
+	    	obj.append($('<option></option>').attr('value', key).text(entry.Name));
+	  	});
+	  	obj.append($('<option></option>').attr('value', 9999).text("*新增"));
+	  	obj.selectpicker('render');
+	  	obj.selectpicker('refresh');
+	}
+
+	function showMessage(msg) {
+		$.alert(msg);
+		// $("#editmsg").text(msg);
+		// 		setTimeout(function () {
+		// 			$("#editmsg").text("");
+  //       		}, 2000
+  //   	);		
+	}
+
+	function save(obj) {
+		$.ajax({
+    		type: "PUT",
+    		url: "tts_api.php/words",
+    		contentType: "application/json",
+    		data: JSON.stringify(obj),
+    		success:function(msg){
+   				showMessage("保存成功.");
+            },
+            error:function(xhr,textstatus,thrown){
+   				showMessage("后台保存失败."+thrown);				
+            }
+		}).always(function() {
+   				initHome();				
+		});
+	}
+
+	function initHome() {
+		initDropDown($('#sel-subject'), "选择科目", true);
+		initDropDown($('#sel-grade'), "选择年级", true);
+		initDropDown($('#sel-unit'), "选择课文", true);
+		fillDropDown($('#sel-subject'), words_db.Contents);
+	}
+
+	function initEdit() {
+		initDropDown($('#sel2-subject'), "选择科目", false);
+		initDropDown($('#sel2-grade'), "选择年级", false);
+		initDropDown($('#sel2-unit'), "选择课文", false);
+		fillDropDownWithAdd($('#sel2-subject'), words_db.Contents);    
+	}
+
+	function resetGrade(fillValue) {
+		initDropDown($('#sel2-grade'), "选择年级", true);
+		if (fillValue) {
+			fillDropDownWithAdd($('#sel2-grade'), words_db.Contents[$("#sel2-subject").val()].Grade);
+		}
+		$("#inp-grade").val("");
+	}
+
+	function resetUnit(fillValue) {
+		initDropDown($('#sel2-unit'), "选择课文", true);
+		if (fillValue) {
+			fillDropDownWithAdd($('#sel2-unit'), words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit);
+		}
+		$("#inp-unit").val("");
+		$("#inp-words").val("");
+	}
+
+	function resetAndSaveSubject() {
+		initDropDown($('#sel2-subject'), "选择科目", false);
+		fillDropDownWithAdd($('#sel2-subject'), words_db.Contents);
+		$("#inp-subject").val("");
+
+		resetGrade(false);
+		resetUnit(false);
+		save(words_db);
+	}
+
+	function resetAndSaveGrade() {
+		resetGrade(true);
+		resetUnit(false);
+		save(words_db);
+	}
+
+	function resetAndSaveUnit() {
+		resetUnit(true);
+		save(words_db);
+	}
+
+
+	$(document).ready(function(){
+
+		$.getJSON(
+	    	"tts_api.php/words",  
+	        function (data) {
+	        	words_db = data;
+	        	initHome();
+	        	initEdit();
+	        }
+	    ).fail(function(data) {
+	    	$("#warning").text("数据读取失败，请刷新页面重试");
+	  	});
+	 
+
+		if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+		   $('.selectpicker').selectpicker('mobile');
+		} 　
+
+	    $("#btn-next").click(function(){
+	     	
+	    	if (words.length == 0) {
+	    		return;
+	    	}
+	     	last = index;
+	       	if (index == words.length) {
+	       		$("#warning").text("播放结束，请核对答案");
+	       		$("#words").text(words);
+	       		return;
+	       	}
+	       	playwords(words[index++]);
+	    });
+	        
+	    $("#btn-replay").click(function(){
+
+	    	if (index == words.length) {
+	    		return;
+	    	}
+	       	playwords(words[last]);
+	    });
+
+		$("#sel-subject").change(function(){
+
+		  	lang = words_db.Contents[$("#sel-subject").val()].Code;
+			words = [];
+
+			initDropDown($('#sel-grade'), "选择年级", false);
+			fillDropDown($('#sel-grade'), words_db.Contents[$("#sel-subject").val()].Grade);
+			
+			initDropDown($('#sel-unit'), "选择课文", true);
+		});
+
+		$("#sel-grade").change(function(){
+			initDropDown($('#sel-unit'), "选择课文", false);
+			fillDropDown($('#sel-unit'), words_db.Contents[$("#sel-subject").val()].Grade[$("#sel-grade").val()].Unit);
+		});
+
+		$("#sel-unit").change(function(){
+			words = words_db.Contents[$("#sel-subject").val()].Grade[$("#sel-grade").val()].Unit[$("#sel-unit").val()].Words.split(",");
+			
+			if ($("#chk-long").prop('checked')) {
+				words = $.grep(words, function(n,i){
+  					return n.length > 2;});
+			}
+
+			if ($("#chk-rand").prop('checked')) {
+				words.sort(randomsort);
+			}
+			$("#total").text(words.length);
+			index = 0;
+			last = 0;
+			$("#hint").text(index);
+			$("#words").text("");
+			$("#warning").text("");
+		});
+
+		//////////////////////////////////////////////////////////////////////////////////
+		///
+		$("#sel2-subject").change(function(){
+			initDropDown($('#sel2-grade'), "选择年级", true);
+			initDropDown($('#sel2-unit'), "选择课文", true);
+			$("#inp-grade").val("");
+			$("#inp-unit").val("");
+			$("#inp-words").val("");
+
+			if ($("#sel2-subject").val() == 9999) {
+				$("#inp-subject").val("");
+				$("#inp-subject").attr("placeholder", "输入科目代码和名称");
+				return;
+			}
+
+			fillDropDownWithAdd($('#sel2-grade'), words_db.Contents[$("#sel2-subject").val()].Grade);
+			$("#inp-subject").val(words_db.Contents[$("#sel2-subject").val()].Code + "," + $("#sel2-subject").find("option:selected").text());
+		});
+
+		$("#sel2-grade").change(function(){
+			initDropDown($('#sel2-unit'), "选择课文", true);
+			$("#inp-unit").val("");
+			$("#inp-words").val("");
+
+			if ($("#sel2-grade").val() == 9999) {
+				$("#inp-grade").val("");
+				$("#inp-grade").attr("placeholder", "输入年级");
+				return;
+			}
+			fillDropDownWithAdd($('#sel2-unit'), words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit);
+			$("#inp-grade").val($("#sel2-grade").find("option:selected").text());
+		});
+
+		$("#sel2-unit").change(function(){
+			if ($("#sel2-unit").val() == 9999) {
+				$("#inp-unit").val("");
+				$("#inp-words").val("");
+				$("#inp-unit").attr("placeholder", "输入课文");
+				$("#inp-words").attr("placeholder", "输入所有词语");
+				return;
+			}
+			$("#inp-unit").val($("#sel2-unit").find("option:selected").text());
+			var wordslist = words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit[$("#sel2-unit").val()].Words;
+			$("#inp-words").val(wordslist);
+		});
+
+		//////////////////////////////////////////////////////////////////////////////////
+		///
+		$("#btn-subject").click(function(){
+			if ($("#inp-subject").val() == "" || 
+				$("#inp-subject").val().split(",").length != 2 || 
+				($("#inp-subject").val().split(",")[0] != 'zh' &&
+				$("#inp-subject").val().split(",")[0] != 'en')) {
+				showMessage("输入内容有误！");				
+				return;
+			}
+			var val = $("#inp-subject").val().split(",");
+			if ($("#sel2-subject").val() == 9999) {
+				words_db.Contents.push({"Code" : val[0], "Name" : val[1], "Grade" : []});
+			}
+			else {
+				words_db.Contents[$("#sel2-subject").val()].Code = val[0];
+				words_db.Contents[$("#sel2-subject").val()].Name = val[1];
+			}
+			resetAndSaveSubject();
+			
+		});
+
+		$("#btn-grade").click(function(){
+			if ($("#inp-grade").val() == "") {
+				showMessage("输入内容有误！");				
+				return;
+			}
+			var val = $("#inp-grade").val();
+			if ($("#sel2-grade").val() == 9999) {
+				words_db.Contents[$("#sel2-subject").val()].Grade.push({"Name" : val, "Unit" : []});
+			}
+			else {
+				words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Name = val;
+			}
+			resetAndSaveGrade();
+		});
+
+		$("#btn-unit").click(function(){
+			if ($("#inp-unit").val() == "") {
+				showMessage("输入内容有误！");				
+				return;
+			}
+			var val = $("#inp-unit").val();
+			var val2 = $("#inp-words").val().replace(/，/g, ",");
+
+			if ($("#sel2-unit").val() == 9999) {
+				words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit.push({"Name" : val, "Words" : val2});
+			}
+			else {
+				words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit[$("#sel2-unit").val()].Name = val;
+				words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit[$("#sel2-unit").val()].Words = val2;
+			}
+			resetAndSaveUnit();
+		});
+		//////////////////////////////////////////////////////////////////////////////////
+		
+		$("#del-subject").click(function(){
+			
+			if ($("#sel2-subject").val() == null) {
+				return;
+			}
+			$.confirm({title: '确认删除', content: '将删除所有下级关联内容！',
+    			buttons: {
+        			ok: function () {
+        				words_db.Contents.splice($("#sel2-subject").val(), 1);
+        				resetAndSaveSubject();
+        			},
+        			cancel: function () {},
+    			}
+			});
+		});
+
+		$("#del-grade").click(function(){
+			if ($("#sel2-grade").val() == null) {
+				return;
+			}
+			$.confirm({title: '确认删除', content: '将删除所有下级关联内容！',
+    			buttons: {
+        			ok: function () {
+            			words_db.Contents[$("#sel2-subject").val()].Grade.splice($("#sel2-grade").val(), 1);
+						resetAndSaveGrade();
+        			},
+        			cancel: function () {},
+    			}
+			});
+		});
+		
+		$("#del-unit").click(function(){
+			if ($("#sel2-unit").val() == null) {
+				return;
+			}
+			$.confirm({title: '确认删除', content: '将删除所有下级关联内容！',
+    			buttons: {
+        			ok: function () {
+            			words_db.Contents[$("#sel2-subject").val()].Grade[$("#sel2-grade").val()].Unit.splice($("#sel2-unit").val(), 1);
+            			resetAndSaveUnit();
+        			},
+        			cancel: function () {},
+    			}
+			});
+		});
+
+
+	});
+
+	</script>
+	<div class="modal"></div>
+</body>
+</html>
