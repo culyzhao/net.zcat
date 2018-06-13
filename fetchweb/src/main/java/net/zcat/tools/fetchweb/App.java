@@ -345,20 +345,24 @@ public class App {
 		   			img.attr("src",imgId);
 		   		}
 		   		
-		   		Elements videos = detail.select(this.article_youtube);
-		   		for (Element video : videos) {
-		   			String videoSrc = video.attr("src");
-		   			if (videoSrc.startsWith("https")) {
-		   				videoSrc = videoSrc.replace("https://www.youtube.com", this.article_youtube_server);
-		   			} else {
-		   				videoSrc = videoSrc.replace("http://www.youtube.com", this.article_youtube_server);
-		   			}
-		   			video.attr("src", videoSrc);
-		   			video.attr("width", "100%");
-		   			video.attr("height", "100%");
-		   			video.wrap("<div class=\"auto-resizable-iframe\"><div></div></div>");
+		   		if (!this.article_youtube_server.isEmpty()) {
+ 			
+			   		Elements videos = detail.select(this.article_youtube);
+			   		for (Element video : videos) {
+			   			String videoSrc = video.attr("src");
+			   			if (videoSrc.startsWith("https")) {
+			   				videoSrc = videoSrc.replace("https://www.youtube.com", this.article_youtube_server);
+			   			} else {
+			   				videoSrc = videoSrc.replace("http://www.youtube.com", this.article_youtube_server);
+			   			}
+			   			logger.info("convert youtube video to " + videoSrc);
+			   			video.attr("src", videoSrc);
+			   			video.attr("width", "100%");
+			   			video.attr("height", "100%");
+			   			video.wrap("<div class=\"auto-resizable-iframe\"><div></div></div>");
+			   		}
+			   		
 		   		}
-		   		
 		   		Element article = detail.selectFirst(this.article_content);
 		   		ct.setText(article.html());
 		   		
