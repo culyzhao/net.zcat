@@ -199,8 +199,6 @@ public class App {
 						replace(App.TEMPLATE_PATH, ct.getId() + "/")
 				).append("\n");
 				
-				if (ct.isFetched()) continue;
-				
 				newContentHtml = contentHtml.replace(App.TEMPLATE_TITLE, ct.getTitle()).
 						replace(App.TEMPLATE_AUTHOR, ct.getAuthor()).
 						replace(App.TEMPLATE_TIME, ct.getTime()).
@@ -311,18 +309,16 @@ public class App {
 		   		ct.setTitle(linkText);
 		   		logger.info("found: " + linkText);
 		   		if (!isTest) {
-		   			File fi = new File(current_path + ct.getId() + "/" + this.document_content_file);
+		   			String contentPath = current_path + ct.getId() + "/" + this.document_content_file; 
+		   			File fi = new File(contentPath);
 		   			if (fi.exists()) {
 		   				ct.setFetched(true);
-		   				logger.info("fetched, parse local page.");
-		   				Document page = Jsoup.parse(new File(current_path + ct.getId() + "/" + this.document_content_file), "UTF-8", this.site_start_url);
-		   				ct.setAuthor(page.selectFirst("meta[name=author]").attr("content"));
-		   				ct.setTime(page.selectFirst("meta[name=time]").attr("content"));
-		   				contents.add(ct);
-		   				continue;
+			   			logger.info("found: " + contentPath);
+		   			} else {
+		   				logger.info("not found: " + contentPath);
+		   				File fd = new File(current_path + ct.getId());
+		   				if (!fd.exists()) fd.mkdir();
 		   			}
-		   			File fd = new File(current_path + ct.getId());
-		   			if (!fd.exists()) fd.mkdir();
 		   		}
 		   		
 				Document detail = Jsoup.connect(linkHref).sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).get();;
@@ -334,12 +330,13 @@ public class App {
 				ct.setTime( time == null ? Instant.now().toString() : time.text());
 	
 				Elements imgs = detail.select(this.article_image);
-		   		
+		   		logger.info("found img size=" + imgs.size());
+
 		   		for (Element img : imgs) {
 		   			String imgSrc = img.attr("abs:src");
 		   			String imgId = DigestUtils.sha1Hex(imgSrc);
 		   			String localPath = this.current_path + ct.getId() + "/" + imgId;
-		   			if (!isTest) {
+		   			if (!isTest && !ct.isFetched()) {
 		   				DownloadImage(imgSrc, localPath);
 		   			}
 		   			img.attr("src",imgId);
@@ -348,6 +345,7 @@ public class App {
 		   		if (!this.article_youtube_server.isEmpty()) {
  			
 			   		Elements videos = detail.select(this.article_youtube);
+			   		logger.info("found video size=" + videos.size());
 			   		for (Element video : videos) {
 			   			String videoSrc = video.attr("src");
 			   			if (videoSrc.startsWith("https")) {
@@ -370,6 +368,7 @@ public class App {
 		   			Elements comment_author = detail.select(this.comments_author);
 		   			Elements comment_time = detail.select(this.comments_time);
 		   			Elements comment_text = detail.select(this.comments_content);
+			   		logger.info("found comment size=" + comment_text.size());
 		   			for (int i = 0; i < comment_text.size(); i++) {
 		   				Comment cmt = new Comment(); 
 	   					cmt.setAuthor(comment_author == null ? site_name : comment_author.get(i).text());
@@ -404,6 +403,8 @@ public class App {
     		System.out.println("property - property file path");
     		return;
     	}
+    	
+    	System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
     	
     	String mode = args[0];
     	
