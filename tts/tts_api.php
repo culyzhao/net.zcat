@@ -20,7 +20,7 @@ $input = file_get_contents('php://input');
 if ($route == 'words') 
 {
     // connect to the mysql database
-    $dbconn = pg_connect("host=127.0.0.1 dbname=tts user=tts password=ttsX1799")
+    $dbconn = pg_connect("*******************")
         or die('Could not connect: ' . pg_last_error());
 
     // create SQL based on HTTP method
