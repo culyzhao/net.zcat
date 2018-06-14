@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -45,6 +46,7 @@ public class App {
 	private static Logger logger = Logger.getLogger("App");
 	
    	private ArrayList<Contents> contents = new ArrayList<Contents>();
+   	private ArrayList<String> idList = new ArrayList<String>();
 
    	private String document_root;
    	private String document_list_file;
@@ -160,17 +162,18 @@ public class App {
 		
 		if (files.length <= this.article_list_history)
 			return;
-
-		Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
 		
-		for (int i = this.article_list_history; i < files.length; i++) {
-			Files.walk(files[i].toPath(), FileVisitOption.FOLLOW_LINKS)
-		       .sorted(Comparator.reverseOrder())
-		       .map(Path::toFile)
-		       .peek(System.out::println)
-		       .forEach(File::delete);
+		for (File f : files) {
+			if (!idList.contains(f.getName())) {
+				Files.walk(f.toPath(), FileVisitOption.FOLLOW_LINKS)
+			       .sorted(Comparator.reverseOrder())
+			       .map(Path::toFile)
+			       .peek(System.out::println)
+			       .forEach(File::delete);
+			}
 		}
-		
+
+		//Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
 	}
 	
 	public void createHtml() throws IOException {
@@ -306,6 +309,7 @@ public class App {
 		   		linkText = link.text();
 		   				   		
 		   		ct.setId(DigestUtils.sha1Hex(linkHref));
+		   		idList.add(ct.getId());
 		   		ct.setTitle(linkText);
 		   		logger.info("found: " + linkText);
 		   		if (!isTest) {
@@ -342,6 +346,14 @@ public class App {
 		   			img.attr("src",imgId);
 		   		}
 		   		
+		   		//fix iframe to auto fit panel
+		   		Elements iframe = detail.select("iframe");
+		   		iframe.forEach( frame -> { 
+		   			frame.attr("width", "100%");
+		   			frame.attr("height", "100%");
+		   			frame.wrap("<div class=\"auto-resizable-iframe\"><div></div></div>");
+		   		});
+		   		
 		   		if (!this.article_youtube_server.isEmpty()) {
  			
 			   		Elements videos = detail.select(this.article_youtube);
@@ -355,9 +367,6 @@ public class App {
 			   			}
 			   			logger.info("convert youtube video to " + videoSrc);
 			   			video.attr("src", videoSrc);
-			   			video.attr("width", "100%");
-			   			video.attr("height", "100%");
-			   			video.wrap("<div class=\"auto-resizable-iframe\"><div></div></div>");
 			   		}
 			   		
 		   		}
