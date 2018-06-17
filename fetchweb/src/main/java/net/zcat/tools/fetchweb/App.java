@@ -51,6 +51,7 @@ public class App {
    	private String document_root;
    	private String document_list_file;
    	private String document_content_file;
+   	private String document_content_root;
    	private String site_name;
    	private String site_start_url;
    	private String article_list_template;
@@ -100,6 +101,7 @@ public class App {
 		document_root = appProps.getProperty(Settings.DOCUMENT_ROOT);
 		document_list_file = appProps.getProperty(Settings.DOCUMENT_LIST_FILE);
 		document_content_file = appProps.getProperty(Settings.DOCUMENT_CONTENT_FILE);
+		document_content_root = appProps.getProperty(Settings.DOCUMENT_CONTENT_ROOT);
 		site_name = appProps.getProperty(Settings.SITE_NAME);
 		site_start_url = appProps.getProperty(Settings.SITE_START_URL);
 		article_list_template = appProps.getProperty(Settings.ARTICLE_LIST_TEMPLATE);
@@ -199,7 +201,7 @@ public class App {
 					titleLine.replace(App.TEMPLATE_TIME, ct.getTime()).
 						replace(App.TEMPLATE_TITLE, ct.getTitle()).
 						replace(App.TEMPLATE_AUTHOR, ct.getAuthor()).
-						replace(App.TEMPLATE_PATH, ct.getId() + "/")
+						replace(App.TEMPLATE_PATH, (this.document_content_root + ct.getId()) + "/")
 				).append("\n");
 				
 				newContentHtml = contentHtml.replace(App.TEMPLATE_TITLE, ct.getTitle()).
