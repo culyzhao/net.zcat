@@ -282,7 +282,9 @@ public class App {
     	//Open a URL Stream
 		logger.info("download image: " + url);
     	
-		Response resultImageResponse = Jsoup.connect(url).sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).ignoreContentType(true).timeout(60000).execute();
+		Response resultImageResponse = Jsoup.connect(url).
+				sslSocketFactory(createIgnoreVerifySSL().getSocketFactory()).ignoreContentType(true).timeout(60000).
+				maxBodySize(0).execute();
     	// output here
     	FileOutputStream out = (new FileOutputStream(new java.io.File(local)));
 
