@@ -21,7 +21,7 @@ $route = preg_replace('/[^a-z0-9_]+/i','',array_shift($request));
 if ($route == 'wx')
 {
     // connect to the mysql database
-    $dbconn = pg_connect("host=127.0.0.1 port=5432 dbname=qualitydb user=qduser password=Pass1234")
+    $dbconn = pg_connect("host=127.0.0.1 port=5432 dbname=qualitydb user=qduser password=********")
         or die( jsonresult('Could not connect: ' . pg_last_error()) );
     // create SQL based on HTTP method
     switch ($method)
