@@ -1,0 +1,18 @@
+POST
+
+Content-Type: multipart/form-data; boundary=-------------------------acebdf13572468
+User-Agent: Fiddler
+Host: 58.246.189.205:10080
+Content-Length: 4367760
+
+---------------------------acebdf13572468
+Content-Disposition: form-data; name="data";
+Content-Type: application/json
+
+{"qprno":"8888888","vin": "LS124", "cause": "", "media": [{"file_name": "video.mp4"}, {"file_name": "picture.jpg"}, {"file_name": "voice.mp3"}], "model": "", "qrp_no": "", "mileage": "", "package": "", "measures": "", "cust_desc": "", "made_date": "", "symp_desc": "", "repair_kit": [{"kit_name": ""}, {"kit_name": ""}, {"kit_name": ""}], "demage_cdoe": "", "demage_name": "", "fault_theme": "", "invoice_date": "", "driving_condition": ""}
+---------------------------acebdf13572468
+Content-Disposition: form-data; name="file"; filename="zhaoxuhua.jpg"
+Content-Type: image/jpeg
+
+<@INCLUDE *e:\Users\xuhuazhao\Pictures\zhaoxuhua.jpg*@>
+---------------------------acebdf13572468--
