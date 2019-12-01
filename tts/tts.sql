@@ -1,19 +1,28 @@
 -- Database: tts
 
 -- DROP DATABASE tts;
+CREATE USER tts;
 
 CREATE DATABASE tts
     WITH 
     OWNER = tts
     ENCODING = 'UTF8'
-    LC_COLLATE = 'en_US.UTF-8'
-    LC_CTYPE = 'en_US.UTF-8'
-    TABLESPACE = pg_default
+    TEMPLATE = template0
     CONNECTION LIMIT = -1;
 
 GRANT TEMPORARY, CONNECT ON DATABASE tts TO PUBLIC;
 
 GRANT ALL ON DATABASE tts TO tts;
+
+CREATE SEQUENCE public.words_bk_id_seq
+    INCREMENT 1
+    START 113
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    CACHE 1;
+
+ALTER SEQUENCE public.words_bk_id_seq
+    OWNER TO tts;
 
 -- Table: public.words
 
@@ -49,12 +58,3 @@ TABLESPACE pg_default;
 ALTER TABLE public.words_bk
     OWNER to tts;
     
-CREATE SEQUENCE public.words_bk_id_seq
-    INCREMENT 1
-    START 113
-    MINVALUE 1
-    MAXVALUE 9223372036854775807
-    CACHE 1;
-
-ALTER SEQUENCE public.words_bk_id_seq
-    OWNER TO tts;

@@ -20,7 +20,7 @@ $input = file_get_contents('php://input');
 if ($route == 'words') 
 {
     // connect to the mysql database
-    $dbconn = pg_connect("*******************")
+    $dbconn = pg_connect("host=db dbname=tts user=tts password=ttsX1799")
         or die('Could not connect: ' . pg_last_error());
 
     // create SQL based on HTTP method
@@ -36,6 +36,10 @@ if ($route == 'words')
         json_decode($input) != null or die('Json format error!');
         //backup data
         $result = dbquery($dbconn, 'ins', 'INSERT INTO words_bk(list) select list from words', array());
+        if (pg_affected_rows($result) == 0)
+	{
+		$result = dbquery($dbconn, 'new', 'INSERT INTO words(list) VALUES($1)', array($input));
+	}
         $result = dbquery($dbconn, 'upd', 'UPDATE words SET list=$1', array($input));
 
         echo (json_encode(pg_num_rows($result))); 
@@ -48,6 +52,9 @@ if ($route == 'words')
     // Closing connection
     pg_close($dbconn);
 
+}
+else {
+	echo '{"error":"invalid access"}';
 }
 
 
