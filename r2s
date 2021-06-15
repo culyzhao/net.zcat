@@ -1,0 +1,114 @@
+R2S软路由OpenWRT固件编译
+
+https://www.caojie.net/2021/03/21/r2s%E8%BD%AF%E8%B7%AF%E7%94%B1openwrt%E5%9B%BA%E4%BB%B6%E7%BC%96%E8%AF%91/
+
+发表于2021年3月21日由寻幂梦想
+
+项目地址：https://github.com/coolsnowwolf/lede
+
+参考文章：https://www.right.com.cn/FORUM/thread-3769950-1-1.html
+
+R2S官方WIKI：http://wiki.friendlyarm.com/wiki/index.php/How_to_Build_FriendlyWrt/zh#RK3328.E5.B9.B3.E5.8F.B0
+
+前段时间R2S软路由比较火，于是就搞了一台。闲来无事网上搜了下OpenWRT固件的编译方法，做下记录。
+
+编译时使用普通用户登录，我习惯采用的平台是Debian 10，部分编译需要提升权限，Debian 10需要自行安装并设置sudo命令，而Ubuntu平台自带这个命令，所以更建议使用Ubuntu平台来编译。全程使用科学上网环境，否则可能因为软件包下载不全而造成编译失败。编译后的固件登录地址更改为10.192.168.254，用户名root，密码为空。
+
+1. 搭建lean和friendlywrt编译环境
+
+使用管理员权限更新系统软件包：
+
+sudo apt-get update && sudo apt-get upgrade
+使用管理员权限安装编译所需软件包：
+
+sudo apt-get -y install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3.5 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf 
+我使用的是虚拟机环境编译，新建了一块40G的磁盘，挂载于/mnt/sdb1目录下，逐条输入以下命令：
+
+cd /mnt/sdb1 && git clone https://github.com/coolsnowwolf/lede
+
+cd lede && git pull && ./scripts/feeds update -a && ./scripts/feeds install -a
+
+cd /mnt/sdb1 && git clone https://github.com/friendlyarm/repo && sudo cp  repo/repo /usr/bin/
+
+cd /mnt/sdb1 && mkdir friendlywrt-rk3328 && cd friendlywrt-rk3328
+
+repo init -u https://github.com/friendlyarm/friendlywrt_manifests -b master-v19.07.1 -m rk3328.xml --repo-url=https://github.com/friendlyarm/repo --no-clone-bundle
+
+repo sync -c --no-clone-bundle
+
+cd /mnt/sdb1/friendlywrt-rk3328 && wget -O - https://raw.githubusercontent.com/friendlyarm/build-env-on-ubuntu-bionic/master/install.sh | bash
+2. 调整文件
+
+cd /mnt/sdb1/ && cp -rf lede/feeds.conf.default friendlywrt-rk3328/friendlywrt/
+由于一些依赖包缺失，我又找了一些feeds.conf.default文件的源地址加入，最终内容如下：
+
+#src-git packages https://github.com/coolsnowwolf/packages
+#src-git luci https://github.com/coolsnowwolf/luci
+#src-git routing https://git.openwrt.org/feed/routing.git
+#src-git telephony https://git.openwrt.org/feed/telephony.git
+src-git freifunk https://github.com/freifunk/openwrt-packages.git
+#src-git video https://github.com/openwrt/video.git
+#src-git targets https://github.com/openwrt/targets.git
+#src-git management https://github.com/openwrt-management/packages.git
+#src-git oldpackages http://git.openwrt.org/packages.git
+#src-link custom /usr/src/openwrt/custom-feed
+src-git helloworld https://github.com/fw876/helloworld
+src-git kenzok https://github.com/kenzok8/openwrt-packages
+src-git small https://github.com/kenzok8/small
+src-git base https://git.lede-project.org/source.git
+src-git packages https://git.lede-project.org/feed/packages.git
+src-git luci https://git.lede-project.org/project/luci.git
+src-git routing https://git.lede-project.org/feed/routing.git
+src-git telephony https://git.lede-project.org/feed/telephony.git
+继续调整文件的工作:
+
+cp -rf lede/package/lean friendlywrt-rk3328/friendlywrt/package
+
+cp -rf lede/tools/ucl friendlywrt-rk3328/friendlywrt/tools/ && cp -rf lede/tools/upx friendlywrt-rk3328/friendlywrt/tools/
+
+cd /mnt/sdb1/ && vi friendlywrt-rk3328/friendlywrt/tools/Makefile
+
+
+将tools-y += ucl upx添加到# subdirectories to descend into段里
+
+例：
+tools-$(CONFIG_TARGET_tegra) += cbootimage cbootimage-configs下一行添加
+tools-y += ucl upx
+
+将$(curdir)/upx/compile := $(curdir)/ucl/compile添加到# builddir dependencies段里
+例：
+$(curdir)/cbootimage/compile += $(curdir)/automake/compile下一行添加
+$(curdir)/upx/compile := $(curdir)/ucl/compile
+3. 更新源码或者固件配置
+
+cd /mnt/sdb1/friendlywrt-rk3328/friendlywrt && ./scripts/feeds update -a && ./scripts/feeds install -a
+
+sed -i 's/192.168.2.1/10.192.168.254/g' /mnt/sdb1/friendlywrt-rk3328/friendlywrt/package/base-files/files/bin/config_generate
+
+cd /mnt/sdb1/friendlywrt-rk3328/friendlywrt && make menuconfig
+4. 选项设置
+
+移动光标到需要选择的项目，按下空格或者Y键选择，按下N键取消，
+
+Target System      选择 ockchip rk3328 (aarch64)
+Target Images      选择 squashfs
+Base system        取消 dnsmasq
+                   选择 dnsmasq-full
+由于R2S性能较弱，我仅仅保留了adguard home，smartdns以及某一上网工具，
+
+> LuCI > 2. Modules > luci-compat 必选，否则后续插件界面错误
+> Network > SSH > openssh-sftp-server 方便使用WinSCP通过SSH传送文件
+> LuCI > 3. Applications > luci-app-adguardhome
+> LuCI > 3. Applications > luci-app-firewall
+> LuCI > 3. Applications > luci-app-smartdns
+
+
+5. 编译
+
+cd /mnt/sdb1/friendlywrt-rk3328/friendlywrt && make download -j1 V=s
+cd /mnt/sdb1/friendlywrt-rk3328 && ./build.sh nanopi_r2s.mk
+编译完成后的文件路径/mnt/sdb1/friendlywrt-rk3328/out。
+
+提取出IMG文件，在Windows环境下使用BalenaEtcher软件写入SD卡，Linux环境使用命令：
+
+sudo dd if=out/FriendlyWrt_xxxxxxxx_NanoPi-R2S_arm64_sd.img bs=1M of=/dev/sdX 文件名称和SD卡设备号根据实际情况做调整
