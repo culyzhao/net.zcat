@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>上海高考单词</title>
+<style>
+:root{--bg:#f7f8fb;--card:#ffffff;--accent:#2563eb;--muted:#666}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+body{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.app{width:100%;max-width:920px;background:var(--card);border-radius:14px;box-shadow:0 6px 24px rgba(12,20,40,0.06);overflow:hidden}
+.header{padding:22px;text-align:center}
+.h1{font-size:20px;font-weight:700}
+.section{padding:18px;border-top:1px solid #f0f2f7}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{flex:1 0 64px;min-width:64px;padding:12px 14px;border-radius:10px;border:1px solid #e6eefb;background:white;font-weight:600;font-size:18px;cursor:pointer}
+.btn.selected{background:var(--accent);color:white;border-color:transparent}
+.footer{display:flex;gap:12px;padding:16px;justify-content:center}
+.primary{background:var(--accent);color:white;padding:12px 20px;border-radius:10px;border:none;font-size:18px}
+.page{min-height:420px}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.word-card{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px}
+.word{font-size:40px;font-weight:800;line-height:1.1;word-break:keep-all;white-space:normal}
+.pron{font-size:20px;color:var(--muted);margin-top:10px}
+.trans{font-size:18px;color:var(--muted);padding:18px;text-align:center}
+.controls{display:flex;gap:12px}
+.small-btn{padding:10px 16px;border-radius:10px;border:1px solid #ddd;background:white;font-size:18px}
+@media (max-width:600px){
+  .word{font-size:32px}
+  .btn{font-size:16px;padding:10px}
+  .pron{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <div class="h1">上海高考单词</div>
+  </div>
+
+  <!-- Page 1: options -->
+  <div class="page" id="page1">
+    <div class="section">
+      <div style="font-weight:700;margin-bottom:8px;text-align:center">选择单词数量</div>
+      <div class="btn-row" id="countRow">
+        <!-- buttons inserted by JS -->
+      </div>
+    </div>
+
+    <div class="section">
+      <div style="font-weight:700;margin-bottom:8px;text-align:center">选择单词类型</div>
+      <div class="btn-row" id="typeRow">
+        <!-- type buttons -->
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="primary" id="startBtn">开始</button>
+    </div>
+  </div>
+
+  <!-- Page 2: cards -->
+  <div class="page" id="page2" style="display:none">
+    <div class="word-card" id="wordCard">
+      <div class="word" id="wordText">加载中...</div>
+      <div class="pron" id="pronText"></div>
+    </div>
+    <div class="section">
+      <div class="trans" id="transText">&nbsp;</div>
+    </div>
+    <div class="footer">
+      <div class="controls">
+        <button class="small-btn" id="knownBtn">认识</button>
+        <button class="small-btn" id="unknownBtn">不认识</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Configuration: set API base URL where words.php is reachable
+const API_BASE = 'words.php'; // adjust if deployed elsewhere
+
+// Page elements
+const page1 = document.getElementById('page1');
+const page2 = document.getElementById('page2');
+const countRow = document.getElementById('countRow');
+const typeRow = document.getElementById('typeRow');
+const startBtn = document.getElementById('startBtn');
+const wordText = document.getElementById('wordText');
+const pronText = document.getElementById('pronText');
+const transText = document.getElementById('transText');
+const knownBtn = document.getElementById('knownBtn');
+const unknownBtn = document.getElementById('unknownBtn');
+
+let counts = [100,200,300,400,500];
+let types = [
+  {label:'不会的', val:2},
+  {label:'会的', val:0},
+  {label:'全部', val:9}
+];
+let selectedCount = counts[0];
+let selectedType = types[0].val;
+
+// build buttons
+counts.forEach(c => {
+  const b = document.createElement('button');
+  b.className = 'btn' + (c===selectedCount? ' selected':'');
+  b.textContent = c;
+  b.addEventListener('click', ()=>{
+    selectedCount = c; document.querySelectorAll('#countRow .btn').forEach(x=>x.classList.remove('selected')); b.classList.add('selected');
+  });
+  countRow.appendChild(b);
+});
+
+types.forEach(t => {
+  const b = document.createElement('button');
+  b.className = 'btn' + (t.val===selectedType? ' selected':'');
+  b.textContent = t.label;
+  b.addEventListener('click', ()=>{
+    selectedType = t.val; document.querySelectorAll('#typeRow .btn').forEach(x=>x.classList.remove('selected')); b.classList.add('selected');
+  });
+  typeRow.appendChild(b);
+});
+
+let words = [];
+let idx = 0;
+
+startBtn.addEventListener('click', ()=>{
+
+  ttsSpeak("开始");
+  fetchWords();
+});
+
+function fetchWords(){
+  page1.style.display='none';
+  page2.style.display='block';
+  wordText.textContent = '加载中...';
+  pronText.textContent = '';
+  transText.innerHTML = '&nbsp;';
+
+  const url = `${API_BASE}?count=${encodeURIComponent(selectedCount)}&type=${encodeURIComponent(selectedType)}`;
+  fetch(url).then(r => r.json()).then(data => {
+    if (!Array.isArray(data) || data.length===0){
+      wordText.textContent = '没有抓取到单词';
+      return;
+    }
+    words = data;
+    idx = 0;
+    showCurrent();
+  }).catch(err=>{
+    wordText.textContent = '请求失败';
+    console.error(err);
+  });
+}
+
+function showCurrent(){
+  if (idx >= words.length) idx = 0; // loop
+  const w = words[idx];
+  wordText.textContent = w.word || '';
+  pronText.textContent = w.pron || '';
+  transText.innerHTML = '&nbsp;';
+  // autoplay TTS
+  ttsSpeak(w.word);
+}
+
+function ttsSpeak1(text){
+  if (!text) return;
+  try{
+    const utter = new SpeechSynthesisUtterance(text);
+    // set lang to en-US if the word contains ASCII only, else default
+    utter.lang = /[\u4e00-\u9fa5]/.test(text) ? 'zh-CN' : 'en-US';
+    // speak
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }catch(e){
+    // ignore TTS errors
+    console.warn('TTS failed', e);
+  }
+}
+
+async function ttsSpeak0(text){
+  if (!text) return;
+
+  try{
+    // Android 必须先等待 voices 加载
+    let voices = speechSynthesis.getVoices();
+    if (!voices.length){
+      await new Promise(resolve=>{
+        speechSynthesis.onvoiceschanged = ()=>{
+          voices = speechSynthesis.getVoices();
+          
+          resolve();
+        };
+      });
+    }
+    // 选择可用 voice（安卓可能找不到 zh-CN/en-US）
+    const voice = voices.find(v=>v.lang.startsWith('en')) ||
+                  voices.find(v=>v.lang.startsWith('zh')) ||
+                  voices[0];
+    
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.voice = voice;
+    utter.lang  = voice?.lang || 'en-US';
+
+    // Android: cancel 后必须延时 speak，否则完全不发声
+    speechSynthesis.cancel();
+    await new Promise(r=>setTimeout(r, 120));
+
+    speechSynthesis.speak(utter);
+
+  }catch(e){
+    console.warn('TTS failed', e);
+  }
+}
+
+async function ttsSpeak(text) {
+  if (!text) return;
+
+  try {
+    // URL encode 防止中文或空格问题
+    const lang = /[\u4e00-\u9fa5]/.test(text) ? 'zh-CN' : 'en';
+    const url = `tts.php?text=${encodeURIComponent(text)}&lang=${lang}`;    
+    //const url = `tts.php?text=${encodeURIComponent(text)}`;
+
+
+
+    // 创建/复用 audio 播放器
+    if (!window.ttsAudio) {
+      window.ttsAudio = new Audio();
+    }
+
+    window.ttsAudio.src = url;
+    window.ttsAudio.pause();
+    window.ttsAudio.currentTime = 0;
+
+    // 等待可播放
+    await window.ttsAudio.play();
+  } catch (e) {
+    console.warn("TTS play error:", e);
+  }
+}
+
+
+
+// clicking word plays audio again
+wordText.addEventListener('click', ()=>{
+  const w = words[idx];
+  if (w) ttsSpeak(w.word);
+});
+
+knownBtn.addEventListener('click', ()=>{
+  knownBtn.style.background = '#22c55e'; // green
+  knownBtn.style.color = '#fff';
+
+  const w = words[idx];
+  if (w && w.id) {
+    // call PUT /words with id
+    fetch(API_BASE, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({id: w.id})
+    }).catch(err=>console.warn(err));
+  }
+  showTransAndNext();
+});
+
+unknownBtn.addEventListener('click', ()=>{
+  unknownBtn.style.background = '#ef4444'; // red
+  unknownBtn.style.color = '#fff';
+  showTransAndNext();
+});
+
+function showTransAndNext(){
+  const w = words[idx];
+  transText.textContent = w ? (w.trans || '') : '';
+  // wait a short time then advance to next (give user time to read)
+  setTimeout(()=>{ idx++; if (idx >= words.length) idx = 0; showCurrent(); 
+  unknownBtn.style.background = ''; 
+  unknownBtn.style.color = '';
+  knownBtn.style.background = ''; // green
+  knownBtn.style.color = '';
+	  }, 1500);
+}
+
+// safe behavior: cancel any ongoing speech when unloading
+window.addEventListener('beforeunload', ()=>{ window.speechSynthesis.cancel(); });
+
+</script>
+</body>
+</html>
